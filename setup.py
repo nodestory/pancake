@@ -11,7 +11,10 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 install_requires = [
     'Flask==0.10.1',
     'Flask-Admin==1.0.9',
+    'Flask-Mongoengine==0.7.1',
     'Eve-Mongoengine==0.0.9',
+    'Eve-Docs',
+    'enum34==1.0.4',
     'redis==2.10.3',
     'requests==2.5.1',
 ]

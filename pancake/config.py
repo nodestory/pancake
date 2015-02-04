@@ -1,7 +1,7 @@
 DEBUG = True
 SECRET_KEY = 'my dirty secret'
 LOGGER_NAME = 'pancake'
-
+API_NAME = 'Pancake'
 #--------------#
 # EVE SETTINGS #
 #--------------#

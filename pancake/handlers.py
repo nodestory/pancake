@@ -11,6 +11,35 @@ def _event_context(event):
     return event
 
 
+def _notify(event, subscriber, media_type, media_address):
+    ns = current_app.extensions['notification_service']
+    context = _event_context(event)
+    name = event['event']
+    if media_type == 'email':
+        ns.notify_email(
+            address=media_address,
+            subject_template_name='%s.subject' % name,
+            txt_template_name='%s.txt' % name,
+            html_template_name='%s.html' % name,
+            context=context
+        )
+        current_app.logger.info(
+            'Notified %s via %s:%s on event[%s]',
+            subscriber, media_type, media_address, event)
+    elif media_type == 'sms':
+        ns.notify_sms(
+            address=media_address,
+            template_name='%s.sms' % name,
+            context=context
+        )
+        current_app.logger.info(
+            'Notified %s via %s:%s on event[%s]',
+            subscriber, media_type, media_address, event)
+    else:
+        current_app.logger.error(
+            'unexpected media type: %s', media_type)
+
+
 def on_inserted_event(items):
     for event in items:
         subscriptions = Subscription.objects(
@@ -19,6 +48,7 @@ def on_inserted_event(items):
             level__lte=event['level'],
             start_time__lte=event['time'],
         )
+        notifications = set()
         for s in subscriptions:
             end_time = s.end_time or event['time'] + timedelta(seconds=1)
             # the rule applies if end_time is not set
@@ -31,27 +61,8 @@ def on_inserted_event(items):
                         subscriber, subscriber.notifications,
                         subscriber.interval)
                     continue
-                ns = current_app.extensions['notification_service']
-                context = _event_context(event)
-                name = event['event']
-                if s.media.type == 'email':
-                    ns.notify_email(
-                        address=s.media.address,
-                        subject_template_name='%s.subject' % name,
-                        txt_template_name='%s.txt' % name,
-                        html_template_name='%s.html' % name,
-                        context=context
-                    )
-                    current_app.logger.info(
-                        'Notified %s via %s on %s', subscriber, s.media, event)
-                elif s.media.type == 'sms':
-                    ns.notify_sms(
-                        address=s.media.address,
-                        template_name='%s.sms' % name,
-                        context=context
-                    )
-                    current_app.logger.info(
-                        'Notified %s via %s on %s', subscriber, s.media, event)
-                else:
-                    current_app.logger.error(
-                        'unexpected media type: %s', s.media.type)
+                notifications.add(
+                    (subscriber.user_id, s.media.type, s.media.address))
+        for notification in notifications:
+            _notify(event, *notification)
+

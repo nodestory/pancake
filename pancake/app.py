@@ -2,8 +2,10 @@ import ast
 import logging.config
 import os
 from eve import Eve
+from eve_docs import eve_docs
 from eve_mongoengine import EveMongoengine
 from flask.ext.admin import Admin
+from flask.ext.bootstrap import Bootstrap
 from redis import StrictRedis
 from pancake import config
 from pancake.admin import model_views
@@ -73,6 +75,9 @@ def configure_ext(app):
     # notification service
     ns = Client(app.settings['NOTIFICATION_SERVICE_URL'])
     app.extensions['notification_service'] = ns
+    # docs
+    Bootstrap(app)
+    app.register_blueprint(eve_docs, url_prefix='/docs')
     return app
 
 

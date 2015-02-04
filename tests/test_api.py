@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 import pytest
-from pancake.models import EventLevels
+from pancake.models import EventLevels, Subscription
 
 
 def test_create_contact(app):
@@ -26,6 +26,7 @@ def test_create_contact(app):
             'contact': contact['_id']
         }])
         assert r.status_code == 201, r.json
+        print r.json
 
 
 @pytest.mark.parametrize(
@@ -79,3 +80,26 @@ def test_event(
         assert notify_transport.called == notified, case
         if notified:
             assert media.address in str(notify_transport.call_args)
+
+
+def test_multiple_subscription(app, contact, subscription,
+                               notification_service, media):
+    contact.notifications = 10
+    contact.save()
+    subscription2 = subscription
+    del subscription2.id
+    subscription2.save()
+    assert len(Subscription.objects()) == 2
+    with app.test_client() as c:
+        r = c.post('/event', json={
+            'event': subscription.event,
+            'level': subscription.level,
+            'user_id': subscription.user_id,
+            'time': subscription.start_time,
+        })
+        assert r.status_code == 201, r.json
+        notify_transport = getattr(
+            notification_service, 'notify_%s' % media.type)
+        # 2 subscription with the same subscriber matches
+        # shall only send one notification
+        assert notify_transport.call_count == 1

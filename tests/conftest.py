@@ -48,7 +48,7 @@ def app(request):
 def model_factory(request, o):
     o.save()
     unicode(o)
-    request.addfinalizer(o.delete)
+    request.addfinalizer(o.__class__.objects().delete)
     return o
 
 

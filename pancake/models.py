@@ -31,9 +31,9 @@ class ResourceMixin(object):
 
 
 class Media(Document, ResourceMixin):
-    address = StringField(required=True)
+    address = StringField(required=True, help_text='address of the media')
     type = StringField(choices=get_enum_values(MediaTypes))
-    contact = ReferenceField('Contact')
+    contact = ReferenceField('Contact', help_text='owner of the media')
 
     meta = {
         'indexes': [
@@ -46,7 +46,11 @@ class Media(Document, ResourceMixin):
 
 
 class Contact(Document, ResourceMixin):
-    user_id = StringField(unique=True, required=True)
+    """
+    Represents an external user. Also bears user notification preference.
+    """
+    user_id = StringField(unique=True, required=True,
+                          help_text='id of the external user')
     interval = IntField(
         default=86400,
         help_text='at most send n notifications in `interval` seconds. '
@@ -85,8 +89,17 @@ class Event(Document, ResourceMixin):
 
 class Subscription(Document, ResourceMixin):
     """
-    For `contact`, On `level` of `event`, between `start_time` and `end_time`,
-    notify `subscriber` via `media`
+    Subscribe to a user's event.
+
+    Upon a new event, send a notification if all of the following meet:
+     * event.event == subscription.event
+     * event.level >= subscription.level
+     * event.time >= subscription.start_time
+     * event.time < subscription.end_time if subscription.end_time
+     * rate limit of the subscriber is not reached
+
+    If an event triggers multiple subscriptions, only one notification is
+    sent per media type.
     """
     item_methods = ['GET', 'PATCH', 'DELETE']
     user_id = StringField(required=True)
