@@ -12,11 +12,13 @@ install_requires = [
     'Flask==0.10.1',
     'Flask-Admin==1.0.9',
     'Eve-Mongoengine==0.0.9',
+    'redis==2.10.3',
+    'requests==2.5.1',
 ]
 tests_require = install_requires + [
-    'pytest==2.6.4', 'coverage==3.7.1']
+    'pytest==2.6.4', 'coverage==3.7.1', 'mock==1.0.1']
 develop_require = tests_require + [
-    'Sphinx>=1.2.1']
+    'Sphinx>=1.2.1', 'sphinxcontrib-httpdomain']
 
 
 setup(

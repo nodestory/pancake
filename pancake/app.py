@@ -4,14 +4,23 @@ import os
 from eve import Eve
 from eve_mongoengine import EveMongoengine
 from flask.ext.admin import Admin
+from redis import StrictRedis
 from pancake import config
 from pancake.admin import model_views
+from pancake.handlers import on_inserted_event
 from pancake.models import Media, Contact, Event, Subscription
+from pancake.notification_service import Client
+
+
+def _get_ext_settings(settings, prefix):
+    return {k.lstrip(prefix).lstrip('_'): v
+            for k, v in settings.items() if k.startswith(prefix)}
 
 
 def create_app(**kwargs):
     settings = get_settings(**kwargs)
     eve = Eve(__name__, settings=settings)
+    eve = configure_hooks(eve)
     eve = configure_ext(eve)
     return eve
 
@@ -41,13 +50,29 @@ def get_settings(**kwargs):
     return settings
 
 
+def configure_hooks(app):
+    app.on_inserted_event += on_inserted_event
+    return app
+
+
 def configure_ext(app):
     ext = EveMongoengine(app)
     admin = Admin(app)
     for model_cls in (Media, Contact, Event, Subscription):
-        ext.add_model(model_cls)
+        ext.add_model(
+            model_cls,
+            resource_methods=model_cls.resource_methods,
+            item_methods=model_cls.item_methods)
         model_view = getattr(model_views, '%sAdmin' % model_cls.__name__)
         admin.add_view(model_view(model_cls))
+    # configure redis for eve rate limit
+    redis_settings = _get_ext_settings(app.settings, 'REDIS')
+    redis_url = redis_settings.pop('URL')
+    redis = StrictRedis.from_url(redis_url, **redis_settings)
+    app.redis = redis
+    # notification service
+    ns = Client(app.settings['NOTIFICATION_SERVICE_URL'])
+    app.extensions['notification_service'] = ns
     return app
 
 
