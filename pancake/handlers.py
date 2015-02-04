@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 from flask import current_app
-from pancake.models import Subscription, Contact
+from pancake.models import Subscription
+from pancake.notification_service import NotificationServiceError
 
 
 def _event_context(event):
@@ -16,25 +17,37 @@ def _notify(event, subscriber, media_type, media_address):
     context = _event_context(event)
     name = event['event']
     if media_type == 'email':
-        ns.notify_email(
-            address=media_address,
-            subject_template_name='%s.subject' % name,
-            txt_template_name='%s.txt' % name,
-            html_template_name='%s.html' % name,
-            context=context
-        )
-        current_app.logger.info(
-            'Notified %s via %s:%s on event[%s]',
-            subscriber, media_type, media_address, event)
+        try:
+            ns.notify_email(
+                address=media_address,
+                subject_template_name='%s.subject' % name,
+                txt_template_name='%s.txt' % name,
+                html_template_name='%s.html' % name,
+                context=context
+            )
+        except NotificationServiceError as e:
+            current_app.logger.error(
+                'Fail to send email notification: %s', e, exc_info=True
+            )
+        else:
+            current_app.logger.info(
+                'Notified %s via %s:%s on event[%s]',
+                subscriber, media_type, media_address, event)
     elif media_type == 'sms':
-        ns.notify_sms(
-            address=media_address,
-            template_name='%s.sms' % name,
-            context=context
-        )
-        current_app.logger.info(
-            'Notified %s via %s:%s on event[%s]',
-            subscriber, media_type, media_address, event)
+        try:
+            ns.notify_sms(
+                address=media_address,
+                template_name='%s.sms' % name,
+                context=context
+            )
+        except NotificationServiceError as e:
+            current_app.logger.error(
+                'Fail to send sms notification: %s', e, exc_info=True
+            )
+        else:
+            current_app.logger.info(
+                'Notified %s via %s:%s on event[%s]',
+                subscriber, media_type, media_address, event)
     else:
         current_app.logger.error(
             'unexpected media type: %s', media_type)
