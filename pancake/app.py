@@ -73,7 +73,7 @@ def configure_ext(app):
     redis = StrictRedis.from_url(redis_url, **redis_settings)
     app.redis = redis
     # notification service
-    ns = Client(app.settings['NOTIFICATION_SERVICE_URL'])
+    ns = Client(app.settings['NOTIFICATION_API_URL'])
     app.extensions['notification_service'] = ns
     # docs
     Bootstrap(app)
@@ -82,4 +82,9 @@ def configure_ext(app):
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True, port=8080)
+    import sys
+    if len(sys.argv) == 2:
+        port = int(sys.argv[1])
+    else:
+        port = 8080
+    create_app().run(debug=True, port=port)

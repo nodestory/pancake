@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 from flask import current_app
-from pancake.models import Subscription
+from pancake.models import Subscription, Contact
 from pancake.notification_service import NotificationServiceError
 
 
 def _event_context(event):
+    event.pop('_id')
     data = event.pop('data', {})
     event.update(data)
     return event

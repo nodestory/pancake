@@ -102,9 +102,9 @@ email notification endpoint:
     }
 
 NS will try to render an email with the templates:
-* battery low.subject: as email subject
-* battery low.txt: as plain text email body
-* battery low.html: as html email body(optional)
+ * battery low.subject: as email subject
+ * battery low.txt: as plain text email body
+ * battery low.html: as html email body(optional)
 
 The user need to create templates for each event before hand, otherwise NS
 returns 404s.
