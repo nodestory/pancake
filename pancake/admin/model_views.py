@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from flask.ext.admin.contrib.mongoengine import ModelView
 from pancake.misc import get_enum_choices
-from pancake.models import EventLevels, MediaTypes
+from pancake.models import MediaTypes
 
 
 class MediaAdmin(ModelView):
@@ -27,4 +27,8 @@ class EventAdmin(ModelView):
 
 
 class SubscriptionAdmin(ModelView):
+    pass
+
+
+class AcknowledgementAdmin(ModelView):
     pass

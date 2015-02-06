@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from eve.methods.common import RateLimit
 from mongoengine import Document, CASCADE, ValidationError
@@ -10,6 +10,7 @@ from pancake.misc import get_enum_choices, get_enum_values
 
 __all__ = [
     'MediaTypes', 'EventLevels', 'Media', 'Contact', 'Event', 'Subscription',
+    'Acknowledgement',
 ]
 
 
@@ -109,24 +110,48 @@ class Subscription(Document, ResourceMixin):
         help_text="matches events with `level` and above.")
     media = ReferenceField(Media, required=True)
     start_time = DateTimeField(required=True)
-    end_time = DateTimeField(
-        help_text='if not set, the subscription is valid from start_time')
+    end_time = DateTimeField()
 
     meta = {
         'indexes': [
-            ('user_id', 'event', 'level', 'start_time'),
-        ]
+            ('user_id', 'event', 'level', 'start_time', 'end_time'),
+        ],
     }
 
-    def validate(self, clean=True):
-        super(Subscription, self).validate(clean)
-        if self.end_time and self.end_time <= self.start_time:
-            raise ValidationError(
-                "Subscription ValidationError", errors={
-                    'end_time': ValidationError(
-                        'end_time must be later than start_time')
-                })
+    def save(self, force_insert=False, validate=True, clean=True,
+             write_concern=None,  cascade=None, cascade_kwargs=None,
+             _refs=None, **kwargs):
+        if not self.end_time:
+            self.end_time = self.start_time + timedelta(days=365000)  # 100 y
+        return super(Subscription, self).save(
+            force_insert, validate, clean, write_concern, cascade,
+            cascade_kwargs, _refs, **kwargs)
 
     def __unicode__(self):
         return "%s subscribes to %s.%s.%s" % (
             self.media, self.user_id, self.event, self.level)
+
+
+class Acknowledgement(Document, ResourceMixin):
+    """
+    If an event of interest triggered during a subscriber's acknowledgement,
+    no notification is sent, like a blacklist.
+
+    The acknowledgement is effective from `start_time` to `end_time`.
+    """
+    item_methods = ['GET', 'PATCH', 'DELETE']
+
+    user_id = StringField(required=True)
+    start_time = DateTimeField(required=True)
+    end_time = DateTimeField()
+    event = StringField(required=True)
+    level = IntField(required=True)
+
+    def save(self, force_insert=False, validate=True, clean=True,
+             write_concern=None,  cascade=None, cascade_kwargs=None,
+             _refs=None, **kwargs):
+        if not self.end_time:
+            self.end_time = self.start_time + timedelta(days=365000)
+        return super(Acknowledgement, self).save(
+            force_insert, validate, clean, write_concern, cascade,
+            cascade_kwargs, _refs, **kwargs)

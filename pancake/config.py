@@ -25,4 +25,4 @@ REDIS_URL = 'redis://localhost:6379/0'
 # other settings like connection pool go here
 
 
-NOTIFICATION_SERVICE_URL = 'http://localhost:8081'
+NOTIFICATION_API_URL = 'http://localhost:8081'

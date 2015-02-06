@@ -8,7 +8,7 @@ from mock import MagicMock
 from pancake.app import create_app
 import pytest
 from pancake.models import (
-    Contact, Media, Subscription, Event, EventLevels)
+    Contact, Media, Subscription, Event, EventLevels, Acknowledgement)
 
 
 class APIClient(FlaskClient):
@@ -54,7 +54,8 @@ def model_factory(request, o):
 
 @pytest.fixture
 def contact(request):
-    return model_factory(request, Contact(user_id=uuid.uuid4().hex))
+    return model_factory(request, Contact(
+        user_id=uuid.uuid4().hex, notifications=10, interval=20))
 
 
 @pytest.fixture(params=[
@@ -67,6 +68,12 @@ def media(request, contact):
 
 
 @pytest.fixture
+def media_email(request, contact):
+    return model_factory(request, Media(
+        type='email', address='blurrcat@gmail.com', contact=contact
+    ))
+
+@pytest.fixture
 def event(request, contact):
     return model_factory(
         request,
@@ -75,13 +82,25 @@ def event(request, contact):
 
 
 @pytest.fixture
-def subscription(request, contact, event, media):
+def subscription(request, contact, event, media_email):
     return model_factory(
         request,
         Subscription(
             user_id=contact.user_id, event=event.event, level=event.level,
-            media=media, start_time=datetime(1970, 2, 1),
+            media=media_email, start_time=datetime(1970, 2, 1),
             end_time=datetime(1970, 10, 1)))
+
+
+@pytest.fixture
+def acknowledgement(request, contact, event, media_email):
+    return model_factory(
+        request,
+        Acknowledgement(
+            user_id=contact.user_id, event=event.event, level=event.level,
+            media=media_email, start_time=datetime(1970, 3, 1),
+            end_time=datetime(1970, 5, 1),
+        )
+    )
 
 
 @pytest.fixture

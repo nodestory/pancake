@@ -61,16 +61,19 @@ def test_event(
     """
     Test notification rules.
     """
-    contact.interval = 20
     contact.notifications = notifications
     contact.save()
     subscription.level = sub_level
+    subscription.media = media
     subscription.save()
     event_json = {
         'event': subscription.event,
         'level': event_level,
         'user_id': contact.user_id,
         'time': event_time,
+        'data': {
+            'username': 'test'
+        }
     }
     with app.test_client() as c:
         r = c.post('/event', json=event_json)
@@ -83,7 +86,7 @@ def test_event(
 
 
 def test_multiple_subscription(app, contact, subscription,
-                               notification_service, media):
+                               notification_service):
     contact.notifications = 10
     contact.save()
     subscription2 = subscription
@@ -98,8 +101,35 @@ def test_multiple_subscription(app, contact, subscription,
             'time': subscription.start_time,
         })
         assert r.status_code == 201, r.json
-        notify_transport = getattr(
-            notification_service, 'notify_%s' % media.type)
         # 2 subscription with the same subscriber matches
         # shall only send one notification
-        assert notify_transport.call_count == 1
+        assert notification_service.notify_email.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "case,sub_s,sub_e,ack_s,ack_e,event_time,notified", [
+        ('event time is in subscription but not in ack -> notify',
+         5, 10, 8, 12, 6, True),
+        ('event time is in both subscription and ack -> no notify',
+         5, 10, 8, 12, 9, False),
+    ]
+)
+def test_acknowledgement(
+        app, subscription, acknowledgement, notification_service,
+        case, sub_s, sub_e, ack_s, ack_e, event_time, notified
+):
+    subscription.start_time = datetime(1970, sub_s, 1)
+    subscription.end_time = datetime(1970, sub_e, 1)
+    subscription.save()
+    acknowledgement.start_time = datetime(1970, ack_s, 1)
+    acknowledgement.end_time = datetime(1970, ack_e, 1)
+    acknowledgement.save()
+    with app.test_client() as c:
+        r = c.post('/event', json={
+            'event': subscription.event,
+            'level': subscription.level,
+            'user_id': subscription.user_id,
+            'time': datetime(1970, event_time, 1)
+        })
+        assert r.status_code == 201
+        assert notification_service.notify_email.called == notified, case

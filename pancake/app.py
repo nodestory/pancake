@@ -10,7 +10,7 @@ from redis import StrictRedis
 from pancake import config
 from pancake.admin import model_views
 from pancake.handlers import on_inserted_event
-from pancake.models import Media, Contact, Event, Subscription
+from pancake.models import Media, Contact, Event, Subscription, Acknowledgement
 from pancake.notification_service import Client
 
 
@@ -60,7 +60,7 @@ def configure_hooks(app):
 def configure_ext(app):
     ext = EveMongoengine(app)
     admin = Admin(app)
-    for model_cls in (Media, Contact, Event, Subscription):
+    for model_cls in (Media, Contact, Event, Subscription, Acknowledgement):
         ext.add_model(
             model_cls,
             resource_methods=model_cls.resource_methods,
@@ -73,7 +73,7 @@ def configure_ext(app):
     redis = StrictRedis.from_url(redis_url, **redis_settings)
     app.redis = redis
     # notification service
-    ns = Client(app.settings['NOTIFICATION_SERVICE_URL'])
+    ns = Client(app.settings['NOTIFICATION_API_URL'])
     app.extensions['notification_service'] = ns
     # docs
     Bootstrap(app)
@@ -82,4 +82,9 @@ def configure_ext(app):
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True, port=8080)
+    import sys
+    if len(sys.argv) == 2:
+        port = int(sys.argv[1])
+    else:
+        port = 8080
+    create_app().run(debug=True, port=port)
