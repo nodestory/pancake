@@ -10,6 +10,7 @@ There are 4 models in Pancake's world:
  * :class:`~pancake.models.Media`: a way to notify user
  * :class:`~pancake.models.Event`: anything of interest of a user that occurs in the system
  * :class:`~pancake.models.Subscription`: a notification rule
+ * :class:`~pancake.models.Acknowledgement`: a notification-muting rule
 
 For more details of the models, see `/docs` or :mod:`pancake.models`.
 

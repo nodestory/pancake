@@ -10,7 +10,7 @@ from redis import StrictRedis
 from pancake import config
 from pancake.admin import model_views
 from pancake.handlers import on_inserted_event
-from pancake.models import Media, Contact, Event, Subscription
+from pancake.models import Media, Contact, Event, Subscription, Acknowledgement
 from pancake.notification_service import Client
 
 
@@ -60,7 +60,7 @@ def configure_hooks(app):
 def configure_ext(app):
     ext = EveMongoengine(app)
     admin = Admin(app)
-    for model_cls in (Media, Contact, Event, Subscription):
+    for model_cls in (Media, Contact, Event, Subscription, Acknowledgement):
         ext.add_model(
             model_cls,
             resource_methods=model_cls.resource_methods,

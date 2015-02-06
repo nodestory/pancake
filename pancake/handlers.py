@@ -1,19 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from collections import defaultdict
 from flask import current_app
-from pancake.models import Subscription, Contact
+from mongoengine import Q
+from pancake.models import Subscription, Acknowledgement
 from pancake.notification_service import NotificationServiceError
 
 
 def _event_context(event):
-    event.pop('_id')
-    data = event.pop('data', {})
-    event.update(data)
-    return event
+    e = {
+        'event': event['event'],
+        'level': event['level'],
+        'time': event['time'],
+        'user_id': event['user_id']
+    }
+    if 'data' in event:
+        e.update(event['data'])
+    return e
 
 
-def _notify(event, subscriber, media_type, media_address):
+def _notify(event, subscriber, media_address, media_type):
     ns = current_app.extensions['notification_service']
     context = _event_context(event)
     name = event['event']
@@ -56,27 +62,36 @@ def _notify(event, subscriber, media_type, media_address):
 
 def on_inserted_event(items):
     for event in items:
-        subscriptions = Subscription.objects(
-            user_id=event['user_id'],
-            event=event['event'],
-            level__lte=event['level'],
-            start_time__lte=event['time'],
-        )
         notifications = set()
+        # handle subscriptions
+        subscriptions = Subscription.objects(
+            (Q(event=event['event']) | Q(event='*')) & Q(
+                user_id=event['user_id'], level__lte=event['level'],
+                start_time__lte=event['time'], end_time__gt=event['time'])
+        ).order_by('-start_time')
+        # group subscriptions by subscribers
+        subs_by_subscriber = defaultdict(list)
         for s in subscriptions:
-            end_time = s.end_time or event['time'] + timedelta(seconds=1)
-            # the rule applies if end_time is not set
-            if event['time'] < end_time:
-                subscriber = s.media.contact
-                if subscriber.rate_limit_reached():
-                    current_app.logger.info(
-                        'notification for contact %s muted because rate ' +
-                        'limit reached: %d in %dsec',
-                        subscriber, subscriber.notifications,
-                        subscriber.interval)
-                    continue
-                notifications.add(
-                    (subscriber.user_id, s.media.type, s.media.address))
-        for notification in notifications:
-            _notify(event, *notification)
-
+            subscriber = s.media.contact
+            if subscriber.rate_limit_reached():
+                current_app.logger.info(
+                    'notification for contact %s muted because rate ' +
+                    'limit reached: %d in %dsec',
+                    subscriber, subscriber.notifications,
+                    subscriber.interval)
+                continue
+            subs_by_subscriber[subscriber.user_id].append(s)
+        # check if subscriber has acknowledged the event
+        for user_id, subscriptions in subs_by_subscriber.iteritems():
+            acknowledge = Acknowledgement.objects(
+                (Q(event=event['event']) | Q(event='*')) & Q(
+                    user_id=user_id, level__lte=event['level'],
+                    start_time__lte=event['time'], end_time__gt=event['time'])
+            ).first()
+            if not acknowledge:  # not acknowledged
+                for s in subscriptions:
+                    notifications.add((
+                        user_id, s.media.address, s.media.type
+                    ))
+        for n in notifications:
+            _notify(event, *n)

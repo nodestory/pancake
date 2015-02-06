@@ -8,3 +8,6 @@ def get_enum_choices(enum):
 
 def get_enum_values(enum):
     return tuple(e.value for e in enum)
+
+
+
