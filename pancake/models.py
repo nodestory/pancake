@@ -50,6 +50,8 @@ class Contact(Document, ResourceMixin):
     """
     Represents an external user. Also bears user notification preference.
     """
+    template = StringField(
+        required=True, help_text="template to use in notifications")
     user_id = StringField(unique=True, required=True,
                           help_text='id of the external user')
     interval = IntField(

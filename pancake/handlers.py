@@ -3,7 +3,7 @@
 from collections import defaultdict
 from flask import current_app
 from mongoengine import Q
-from pancake.models import Subscription, Acknowledgement
+from pancake.models import Subscription, Acknowledgement, Contact
 from pancake.notification_service import NotificationServiceError
 
 
@@ -22,7 +22,7 @@ def _event_context(event):
 def _notify(event, subscriber, media_address, media_type):
     ns = current_app.extensions['notification_service']
     context = _event_context(event)
-    name = event['event']
+    name = subscriber.template
     if media_type == 'email':
         try:
             ns.notify_email(
@@ -89,9 +89,10 @@ def on_inserted_event(items):
                     start_time__lte=event['time'], end_time__gt=event['time'])
             ).first()
             if not acknowledge:  # not acknowledged
+                subscriber = Contact.objects(user_id=user_id).first()
                 for s in subscriptions:
                     notifications.add((
-                        user_id, s.media.address, s.media.type
+                        subscriber, s.media.address, s.media.type
                     ))
         for n in notifications:
             _notify(event, *n)
