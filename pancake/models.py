@@ -50,6 +50,8 @@ class Contact(Document, ResourceMixin):
     """
     Represents an external user. Also bears user notification preference.
     """
+    template = StringField(
+        required=True, help_text="template to use in notifications")
     user_id = StringField(unique=True, required=True,
                           help_text='id of the external user')
     interval = IntField(
@@ -151,7 +153,7 @@ class Acknowledgement(Document, ResourceMixin):
              write_concern=None,  cascade=None, cascade_kwargs=None,
              _refs=None, **kwargs):
         if not self.end_time:
-            self.end_time = self.start_time + timedelta(days=365000)
+            self.end_time = self.start_time + timedelta(days=36500)
         return super(Acknowledgement, self).save(
             force_insert, validate, clean, write_concern, cascade,
             cascade_kwargs, _refs, **kwargs)
