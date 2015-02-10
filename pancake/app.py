@@ -1,6 +1,7 @@
 import ast
 import logging.config
 import os
+import sys
 from eve import Eve
 from eve_docs import eve_docs
 from eve_mongoengine import EveMongoengine
@@ -81,10 +82,14 @@ def configure_ext(app):
     return app
 
 
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) == 2:
-        port = int(sys.argv[1])
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    if len(args) == 1:
+        port = int(args[0])
     else:
         port = 8080
     create_app().run(debug=True, port=port)
+
+if __name__ == "__main__":
+    main()

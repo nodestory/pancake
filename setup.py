@@ -41,4 +41,9 @@ setup(
     },
     zip_safe=False,
     keywords='pancake',
+	entry_points={
+		'console_scripts': [
+			'pancaked = pancake.app:main'
+		]
+	},
 )
