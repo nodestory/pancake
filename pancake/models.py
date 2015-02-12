@@ -82,7 +82,7 @@ class Event(Document, ResourceMixin):
     user_id = StringField(required=True)
     event = StringField(required=True)
     level = IntField(choices=get_enum_values(EventLevels), required=True)
-    time = DateTimeField(default=datetime.now)
+    time = DateTimeField(default=datetime.utcnow)
     data = DictField(help_text="used when rendering notification content")
 
     def __unicode__(self):
