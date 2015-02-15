@@ -69,6 +69,8 @@ def on_inserted_event(items):
                 user_id=event['user_id'], level__lte=event['level'],
                 start_time__lte=event['time'], end_time__gt=event['time'])
         ).order_by('-start_time')
+        current_app.logger.info(
+            'found %d subscriptions for event %s', len(subscriptions), event)
         # group subscriptions by subscribers
         subs_by_subscriber = defaultdict(list)
         for s in subscriptions:
@@ -94,5 +96,8 @@ def on_inserted_event(items):
                     notifications.add((
                         subscriber, s.media.address, s.media.type
                     ))
+                    current_app.logger.info(
+                        'add %s to notification list via %s',
+                        subscriber, s.media)
         for n in notifications:
             _notify(event, *n)
