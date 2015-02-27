@@ -30,33 +30,38 @@ def test_create_contact(app):
 
 
 @pytest.mark.parametrize(
-    "case,notifications,sub_level,event_level,event_time,notified", [
-        ('rate limit reached -> no-notify',
-         0, EventLevels.OK.value, EventLevels.OK.value,
+    "case,notifications,s_notifications,sub_level,event_level,event_time," +
+    "notified", [
+        ('contact rate limit reached -> no-notify',
+         0, 10, EventLevels.OK.value, EventLevels.OK.value,
          datetime(1970, 3, 1), False),
-        ('rate limit ok -> notify',
-         1, EventLevels.OK.value, EventLevels.OK.value,
+        ('contact rate limit ok -> notify',
+         1, 10, EventLevels.OK.value, EventLevels.OK.value,
          datetime(1970, 3, 1), True),
+        ('subscription rate limit reached -> no-notify',
+         1, 0, EventLevels.OK.value, EventLevels.OK.value,
+         datetime(1970, 3, 1), False),
         ('subscription level > event level -> no notify',
-         1, EventLevels.CRITICAL.value, EventLevels.OK.value,
+         1, 10, EventLevels.CRITICAL.value, EventLevels.OK.value,
          datetime(1970, 3, 1), False),
         ('subscription level = event level -> notify',
-         1, EventLevels.CRITICAL.value, EventLevels.CRITICAL.value,
+         1, 10, EventLevels.CRITICAL.value, EventLevels.CRITICAL.value,
          datetime(1970, 3, 1), True),
         ('subscription level < event level -> notify',
-         1, EventLevels.OK.value, EventLevels.CRITICAL.value,
+         1, 10, EventLevels.OK.value, EventLevels.CRITICAL.value,
          datetime(1970, 3, 1), True),
         ('event time earlier then subscription start_time -> no notify',
-         1, EventLevels.OK.value, EventLevels.OK.value,
+         1, 10, EventLevels.OK.value, EventLevels.OK.value,
          datetime(1970, 1, 1), False),
         ('event time later than subscription end_time -> no notify',
-         1, EventLevels.OK.value, EventLevels.OK.value,
+         1, 10, EventLevels.OK.value, EventLevels.OK.value,
          datetime(1971, 1, 1), False),
     ]
 )
 def test_event(
     app, contact, media, subscription, notification_service, case,
-    notifications, sub_level, event_level, event_time, notified
+    notifications, s_notifications, sub_level, event_level, event_time,
+    notified,
 ):
     """
     Test notification rules.
@@ -65,6 +70,7 @@ def test_event(
     contact.save()
     subscription.level = sub_level
     subscription.media = media
+    subscription.limit_notifications = s_notifications
     subscription.save()
     event_json = {
         'event': subscription.event,
