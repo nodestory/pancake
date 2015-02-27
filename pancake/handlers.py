@@ -75,10 +75,17 @@ def on_inserted_event(items):
         subs_by_subscriber = defaultdict(list)
         for s in subscriptions:
             subscriber = s.media.contact
+            if s.rate_limit_reached():
+                current_app.logger.info(
+                    'notification for contact %s muted because subscription ' +
+                    'level rate limit reached: %d in %dsec',
+                    subscriber, s.limit_notifications, s.limit_interval
+                )
+                continue
             if subscriber.rate_limit_reached():
                 current_app.logger.info(
-                    'notification for contact %s muted because rate ' +
-                    'limit reached: %d in %dsec',
+                    'notification for contact %s muted because contact ' +
+                    'level rate limit reached: %d in %dsec',
                     subscriber, subscriber.notifications,
                     subscriber.interval)
                 continue

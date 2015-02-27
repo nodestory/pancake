@@ -111,6 +111,14 @@ class Subscription(Document, ResourceMixin):
     media = ReferenceField(Media, required=True)
     start_time = DateTimeField(required=True)
     end_time = DateTimeField()
+    # rate limit. By default no rate limit on the event level is applied
+    limit_interval = IntField(
+        help_text='time interval of rate limit in seconds. '
+                  'If None, no rate limit is applied')
+    limit_notifications = IntField(
+        help_text='maximum number of notification that can be sent in '
+                  '`limit_interval`', default=0
+    )
 
     meta = {
         'indexes': [
@@ -126,6 +134,15 @@ class Subscription(Document, ResourceMixin):
         return super(Subscription, self).save(
             force_insert, validate, clean, write_concern, cascade,
             cascade_kwargs, _refs, **kwargs)
+
+    def rate_limit_reached(self):
+        if not self.limit_interval:
+            return False
+        key = 'rl:%s:%s:%s:%s' % (
+            self.user_id, self.media.address, self.event, self.level)
+        limit = RateLimit(
+            key, self.limit_notifications, self.limit_interval, False)
+        return limit.over_limit
 
     def __unicode__(self):
         return "%s subscribes to %s.%s.%s" % (

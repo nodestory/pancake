@@ -89,7 +89,8 @@ def subscription(request, contact, event, media_email):
         Subscription(
             user_id=contact.user_id, event=event.event, level=event.level,
             media=media_email, start_time=datetime(1970, 2, 1),
-            end_time=datetime(1970, 10, 1)))
+            end_time=datetime(1970, 10, 1), limit_interval=1,
+            limit_notifications=10))
 
 
 @pytest.fixture
