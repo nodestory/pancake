@@ -10,7 +10,6 @@ def test_create_contact(app):
         # create contact
         r = c.post('/contact', json={
             'user_id': '1',
-            'template': 'dev.events',
             'interval': 86400,
             'notifications': 1,
         })
@@ -105,7 +104,7 @@ def test_multiple_subscription(app, contact, subscription,
         # 2 subscription with the same subscriber matches
         # shall only send one notification
         assert notification_service.notify_email.call_count == 1
-        assert contact.template in str(
+        assert subscription.event in str(
             notification_service.notify_email.call_args)
 
 

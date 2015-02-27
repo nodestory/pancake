@@ -76,26 +76,21 @@ reached, no notification is sent until the limit resets at the next period.
 Notification Templates
 ----------------------
 Pancake uses notification service to actually send the notifications.
-The content of the notifications is rendered with templates. Each contact
-has a `template` attribute, which is used to determine which templates to use
-when rendering different notifications.
+The content of the notifications is rendered with templates. For each event,
+pancake uses `event` to find templates to render the notifications.
 
 Currently Email and SMS notifications are supported.
 
 For Email notifications, the following templates are used:
-* `%{contact.template}s.subject` renders the subject of the email
-* `%{contact.template}s.html` renders the html content of the email
-* `%{contact.template}s.txt` renders the txt content of the email
+* `%{event}s.subject` renders the subject of the email
+* `%{event}s.html` renders the html content of the email
+* `%{event}s.txt` renders the txt content of the email
 
-For SMS notifications, the template `%{contact.template}s.sms` is used to
+For SMS notifications, the template `%{event}s.sms` is used to
 render the content of the SMS.
 
-All those templates but be defined in the notification service beforehand,
-otherwise notifications cannot be sent successfully. The template attribute
-can be set to any string.
-For example, the organization of the user or his name. It depends
-on how much you want to personalize the content of the notifications.
-Of course, the more personalized, the more templates you need to create.
+All those templates must be defined in the notification service beforehand,
+otherwise notifications cannot be sent successfully.
 
 
 Cookbook

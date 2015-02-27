@@ -3,7 +3,7 @@
 from collections import defaultdict
 from flask import current_app
 from mongoengine import Q
-from pancake.models import Subscription, Acknowledgement, Contact
+from pancake.models import Subscription, Acknowledgement
 from pancake.notification_service import NotificationServiceError
 
 
@@ -22,14 +22,14 @@ def _event_context(event):
 def _notify(event, subscriber, media_address, media_type):
     ns = current_app.extensions['notification_service']
     context = _event_context(event)
-    name = subscriber.template
+    event_name = event['event']
     if media_type == 'email':
         try:
             ns.notify_email(
                 address=media_address,
-                subject_template_name='%s.subject' % name,
-                txt_template_name='%s.txt' % name,
-                html_template_name='%s.html' % name,
+                subject_template_name='%s.subject' % event_name,
+                txt_template_name='%s.txt' % event_name,
+                html_template_name='%s.html' % event_name,
                 context=context
             )
         except NotificationServiceError as e:
@@ -44,7 +44,7 @@ def _notify(event, subscriber, media_address, media_type):
         try:
             ns.notify_sms(
                 address=media_address,
-                template_name='%s.sms' % name,
+                template_name='%s.sms' % event_name,
                 context=context
             )
         except NotificationServiceError as e:
@@ -91,13 +91,14 @@ def on_inserted_event(items):
                     start_time__lte=event['time'], end_time__gt=event['time'])
             ).first()
             if not acknowledge:  # not acknowledged
-                subscriber = Contact.objects(user_id=user_id).first()
                 for s in subscriptions:
+                    # ensure only one notification is sent via a media
+                    # for an event of a user
                     notifications.add((
-                        subscriber, s.media.address, s.media.type
+                        event['event'], user_id, s.media.address, s.media.type
                     ))
                     current_app.logger.info(
-                        'add %s to notification list via %s',
-                        subscriber, s.media)
+                        'add %s of %s to notification list via %s',
+                        event['event'], user_id, s.media)
         for n in notifications:
-            _notify(event, *n)
+            _notify(event, *n[1:])

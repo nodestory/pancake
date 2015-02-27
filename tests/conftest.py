@@ -55,8 +55,7 @@ def model_factory(request, o):
 @pytest.fixture
 def contact(request):
     return model_factory(request, Contact(
-        user_id=uuid.uuid4().hex, template='dev',
-        notifications=10, interval=20))
+        user_id=uuid.uuid4().hex, notifications=10, interval=20))
 
 
 @pytest.fixture(params=[
