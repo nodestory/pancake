@@ -28,22 +28,7 @@ class EventLevels(Enum):
 
 class ResourceMixin(object):
     resource_methods = ['GET', 'POST']
-    item_methods = ['GET', 'PATCH']
-
-
-class Media(Document, ResourceMixin):
-    address = StringField(required=True, help_text='address of the media')
-    type = StringField(choices=get_enum_values(MediaTypes))
-    contact = ReferenceField('Contact', help_text='owner of the media')
-
-    meta = {
-        'indexes': [
-            'contact',
-        ]
-    }
-
-    def __unicode__(self):
-        return u'%s:%s' % (self.type, self.address)
+    item_methods = ['GET', 'PATCH', 'DELETE']
 
 
 class Contact(Document, ResourceMixin):
@@ -71,6 +56,21 @@ class Contact(Document, ResourceMixin):
 
     def __unicode__(self):
         return unicode(self.user_id)
+
+
+class Media(Document, ResourceMixin):
+    address = StringField(required=True, help_text='address of the media')
+    type = StringField(choices=get_enum_values(MediaTypes))
+    contact = ReferenceField(Contact, help_text='owner of the media', unique_with='type', reverse_delete_rule=CASCADE)
+
+    meta = {
+        'indexes': [
+            'contact',
+        ]
+    }
+
+    def __unicode__(self):
+        return u'%s:%s' % (self.type, self.address)
 
 
 class Event(Document, ResourceMixin):
@@ -127,7 +127,7 @@ class Subscription(Document, ResourceMixin):
     }
 
     def save(self, force_insert=False, validate=True, clean=True,
-             write_concern=None,  cascade=None, cascade_kwargs=None,
+             write_concern=None, cascade=None, cascade_kwargs=None,
              _refs=None, **kwargs):
         if not self.end_time:
             self.end_time = self.start_time + timedelta(days=365000)  # 100 y
@@ -165,7 +165,7 @@ class Acknowledgement(Document, ResourceMixin):
     level = IntField(required=True)
 
     def save(self, force_insert=False, validate=True, clean=True,
-             write_concern=None,  cascade=None, cascade_kwargs=None,
+             write_concern=None, cascade=None, cascade_kwargs=None,
              _refs=None, **kwargs):
         if not self.end_time:
             self.end_time = self.start_time + timedelta(days=36500)
