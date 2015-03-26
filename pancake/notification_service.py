@@ -27,6 +27,7 @@ class Client(Session):
 
     def notify_sms(self, address, template_name, context, media_urls=None):
         if media_urls:
+            # Twilio
             context['media_urls'] = media_urls
         r = self.post(
             self._resource('sms', template_name, address),
