@@ -69,9 +69,13 @@ def media(request, contact):
 
 @pytest.fixture
 def media_email(request, contact):
-    return model_factory(request, Media(
-        type='email', address='blurrcat@gmail.com', contact=contact
-    ))
+    result = Media.objects(type='email', contact=contact).first()
+    if result is None:
+        result = model_factory(request, Media(
+            type='email', address='blurrcat@gmail.com', contact=contact
+        ))
+
+    return result
 
 
 @pytest.fixture
