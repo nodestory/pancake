@@ -46,3 +46,6 @@ docs/_build/
 
 # PyBuilder
 target/
+.idea
+dump.rdb
+setuptools-12.1.zip

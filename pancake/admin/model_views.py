@@ -6,6 +6,7 @@ from pancake.models import MediaTypes
 
 
 class MediaAdmin(ModelView):
+    column_display_pk = True
     form_args = {
         'type': {
             'choices': get_enum_choices(MediaTypes)
@@ -14,7 +15,7 @@ class MediaAdmin(ModelView):
 
 
 class ContactAdmin(ModelView):
-    pass
+    column_display_pk = True
 
 
 class EventAdmin(ModelView):

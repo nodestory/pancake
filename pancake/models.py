@@ -28,30 +28,13 @@ class EventLevels(Enum):
 
 class ResourceMixin(object):
     resource_methods = ['GET', 'POST']
-    item_methods = ['GET', 'PATCH']
-
-
-class Media(Document, ResourceMixin):
-    address = StringField(required=True, help_text='address of the media')
-    type = StringField(choices=get_enum_values(MediaTypes))
-    contact = ReferenceField('Contact', help_text='owner of the media')
-
-    meta = {
-        'indexes': [
-            'contact',
-        ]
-    }
-
-    def __unicode__(self):
-        return u'%s:%s' % (self.type, self.address)
+    item_methods = ['GET', 'PATCH', 'DELETE']
 
 
 class Contact(Document, ResourceMixin):
     """
     Represents an external user. Also bears user notification preference.
     """
-    template = StringField(
-        required=True, help_text="template to use in notifications")
     user_id = StringField(unique=True, required=True,
                           help_text='id of the external user')
     interval = IntField(
@@ -75,6 +58,21 @@ class Contact(Document, ResourceMixin):
         return unicode(self.user_id)
 
 
+class Media(Document, ResourceMixin):
+    address = StringField(required=True, help_text='address of the media')
+    type = StringField(choices=get_enum_values(MediaTypes))
+    contact = ReferenceField(Contact, help_text='owner of the media', unique_with='type', reverse_delete_rule=CASCADE)
+
+    meta = {
+        'indexes': [
+            'contact',
+        ]
+    }
+
+    def __unicode__(self):
+        return u'%s:%s' % (self.type, self.address)
+
+
 class Event(Document, ResourceMixin):
     """
     represents an occurrence of an event to a user
@@ -82,7 +80,7 @@ class Event(Document, ResourceMixin):
     user_id = StringField(required=True)
     event = StringField(required=True)
     level = IntField(choices=get_enum_values(EventLevels), required=True)
-    time = DateTimeField(default=datetime.now)
+    time = DateTimeField(default=datetime.utcnow)
     data = DictField(help_text="used when rendering notification content")
 
     def __unicode__(self):
@@ -113,6 +111,14 @@ class Subscription(Document, ResourceMixin):
     media = ReferenceField(Media, required=True)
     start_time = DateTimeField(required=True)
     end_time = DateTimeField()
+    # rate limit. By default no rate limit on the event level is applied
+    limit_interval = IntField(
+        help_text='time interval of rate limit in seconds. '
+                  'If None, no rate limit is applied')
+    limit_notifications = IntField(
+        help_text='maximum number of notification that can be sent in '
+                  '`limit_interval`', default=0
+    )
 
     meta = {
         'indexes': [
@@ -121,13 +127,22 @@ class Subscription(Document, ResourceMixin):
     }
 
     def save(self, force_insert=False, validate=True, clean=True,
-             write_concern=None,  cascade=None, cascade_kwargs=None,
+             write_concern=None, cascade=None, cascade_kwargs=None,
              _refs=None, **kwargs):
         if not self.end_time:
             self.end_time = self.start_time + timedelta(days=365000)  # 100 y
         return super(Subscription, self).save(
             force_insert, validate, clean, write_concern, cascade,
             cascade_kwargs, _refs, **kwargs)
+
+    def rate_limit_reached(self):
+        if not self.limit_interval:
+            return False
+        key = 'rl:%s:%s:%s:%s' % (
+            self.user_id, self.media.address, self.event, self.level)
+        limit = RateLimit(
+            key, self.limit_notifications, self.limit_interval, False)
+        return limit.over_limit
 
     def __unicode__(self):
         return "%s subscribes to %s.%s.%s" % (
@@ -150,7 +165,7 @@ class Acknowledgement(Document, ResourceMixin):
     level = IntField(required=True)
 
     def save(self, force_insert=False, validate=True, clean=True,
-             write_concern=None,  cascade=None, cascade_kwargs=None,
+             write_concern=None, cascade=None, cascade_kwargs=None,
              _refs=None, **kwargs):
         if not self.end_time:
             self.end_time = self.start_time + timedelta(days=36500)
