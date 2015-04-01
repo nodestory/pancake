@@ -114,7 +114,7 @@ class Subscription(Document, ResourceMixin):
     # rate limit. By default no rate limit on the event level is applied
     limit_interval = IntField(
         help_text='time interval of rate limit in seconds. '
-                  'If zero, no rate limit is applied.', default=0)
+                  'If zero or none, no rate limit is applied.', default=0)
     limit_notifications = IntField(
         help_text='maximum number of notification that can be sent in '
                   '`limit_interval`', default=0
@@ -136,7 +136,7 @@ class Subscription(Document, ResourceMixin):
             cascade_kwargs, _refs, **kwargs)
 
     def rate_limit_reached(self):
-        if self.limit_interval == 0:
+        if self.limit_interval == 0 or self.limit_interval is None:
             return False
         key = 'rl:%s:%s:%s:%s' % (
             self.user_id, self.media.address, self.event, self.level)

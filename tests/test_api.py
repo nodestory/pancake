@@ -5,11 +5,12 @@ import pytest
 from pancake.models import EventLevels, Subscription
 
 
-def test_create_contact(app):
+def test_create_contact_media_subscription(app):
     with app.test_client() as c:
         # create contact
+        user_id = '123456'
         r = c.post('/contact', json={
-            'user_id': '1',
+            'user_id': user_id ,
             'interval': 86400,
             'notifications': 1,
         })
@@ -26,7 +27,20 @@ def test_create_contact(app):
             'contact': contact['_id']
         }])
         assert r.status_code == 201, r.json
-        print r.json
+        media = r.json
+
+        # create subscription for media
+        r = c.post('/subscription', json=[{
+            'user_id': user_id,
+            'level': 1,
+            'event': 'battery low',
+            'start_time': datetime.utcnow(),
+            'limit_interval': 3600,
+            'limit_notifications': 1,
+            'media': media['_items'][0]['_id']
+        }])
+
+        assert r.status_code == 201, r.json
 
 
 @pytest.mark.parametrize(

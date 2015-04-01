@@ -8,6 +8,8 @@ API_NAME = 'Pancake'
 DOMAIN = {}
 RESOURCE_METHODS = ('GET ', 'POST', 'DELETE')
 PAGINATION_LIMIT = 2000
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 
 #------------------#
 # MONGODB SETTINGS #
