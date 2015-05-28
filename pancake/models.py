@@ -70,7 +70,7 @@ class Media(Document, ResourceMixin):
     }
 
     def __unicode__(self):
-        return u'%s:%s' % (self.type, self.address)
+        return u'%s:%s[%s]' % (self.type, self.address, self.contact)
 
 
 class Event(Document, ResourceMixin):
