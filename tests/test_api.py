@@ -5,11 +5,13 @@ import pytest
 from pancake.models import EventLevels, Subscription
 
 
-def test_create_contact(app):
+def test_create_contact_media_subscription(app):
     with app.test_client() as c:
+        FORMAT = app.config['DATE_FORMAT']
         # create contact
+        user_id = '123456'
         r = c.post('/contact', json={
-            'user_id': '1',
+            'user_id': user_id ,
             'interval': 86400,
             'notifications': 1,
         })
@@ -26,7 +28,20 @@ def test_create_contact(app):
             'contact': contact['_id']
         }])
         assert r.status_code == 201, r.json
-        print r.json
+        media = r.json
+
+        # create subscription for media
+        r = c.post('/subscription', json=[{
+            'user_id': user_id,
+            'level': 1,
+            'event': 'battery low',
+            'start_time': datetime.utcnow().strftime(FORMAT),
+            'limit_interval': 3600,
+            'limit_notifications': 1,
+            'media': media['_items'][0]['_id']
+        }])
+
+        assert r.status_code == 201, r.json
 
 
 @pytest.mark.parametrize(
@@ -66,6 +81,7 @@ def test_event(
     """
     Test notification rules.
     """
+    FORMAT = app.config['DATE_FORMAT']
     contact.notifications = notifications
     contact.save()
     subscription.level = sub_level
@@ -76,7 +92,7 @@ def test_event(
         'event': subscription.event,
         'level': event_level,
         'user_id': contact.user_id,
-        'time': event_time,
+        'time': event_time.strftime(FORMAT),
         'data': {
             'username': 'test'
         }
@@ -93,6 +109,7 @@ def test_event(
 
 def test_multiple_subscription(app, contact, subscription,
                                notification_service):
+    FORMAT = app.config['DATE_FORMAT']
     contact.notifications = 10
     contact.save()
     subscription2 = subscription
@@ -104,7 +121,7 @@ def test_multiple_subscription(app, contact, subscription,
             'event': subscription.event,
             'level': subscription.level,
             'user_id': subscription.user_id,
-            'time': subscription.start_time,
+            'time': subscription.start_time.strftime(FORMAT),
         })
         assert r.status_code == 201, r.json
         # 2 subscription with the same subscriber matches
@@ -126,6 +143,8 @@ def test_acknowledgement(
         app, subscription, acknowledgement, notification_service,
         case, sub_s, sub_e, ack_s, ack_e, event_time, notified
 ):
+    FORMAT = app.config['DATE_FORMAT']
+
     subscription.start_time = datetime(1970, sub_s, 1)
     subscription.end_time = datetime(1970, sub_e, 1)
     subscription.save()
@@ -137,7 +156,7 @@ def test_acknowledgement(
             'event': subscription.event,
             'level': subscription.level,
             'user_id': subscription.user_id,
-            'time': datetime(1970, event_time, 1)
+            'time': datetime(1970, event_time, 1).strftime(FORMAT)
         })
         assert r.status_code == 201
         assert notification_service.notify_email.called == notified, case

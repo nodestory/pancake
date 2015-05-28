@@ -70,7 +70,7 @@ class Media(Document, ResourceMixin):
     }
 
     def __unicode__(self):
-        return u'%s:%s' % (self.type, self.address)
+        return u'%s:%s[%s]' % (self.type, self.address, self.contact)
 
 
 class Event(Document, ResourceMixin):
@@ -108,13 +108,13 @@ class Subscription(Document, ResourceMixin):
     level = IntField(
         required=True, choices=get_enum_values(EventLevels),
         help_text="matches events with `level` and above.")
-    media = ReferenceField(Media, required=True)
+    media = ReferenceField(Media, required=True, reverse_delete_rule=CASCADE)
     start_time = DateTimeField(required=True)
     end_time = DateTimeField()
     # rate limit. By default no rate limit on the event level is applied
     limit_interval = IntField(
         help_text='time interval of rate limit in seconds. '
-                  'If None, no rate limit is applied')
+                  'If zero or none, no rate limit is applied.', default=0)
     limit_notifications = IntField(
         help_text='maximum number of notification that can be sent in '
                   '`limit_interval`', default=0
@@ -136,7 +136,7 @@ class Subscription(Document, ResourceMixin):
             cascade_kwargs, _refs, **kwargs)
 
     def rate_limit_reached(self):
-        if not self.limit_interval:
+        if self.limit_interval == 0 or self.limit_interval is None:
             return False
         key = 'rl:%s:%s:%s:%s' % (
             self.user_id, self.media.address, self.event, self.level)
