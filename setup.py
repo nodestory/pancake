@@ -15,7 +15,7 @@ install_requires = [
     'Eve-Mongoengine==0.0.9',
     'Eve-Docs',
     'enum34==1.0.4',
-    'redis==2.10.3',
+    'redis==4.4.4',
     'requests==2.5.1',
 ]
 tests_require = install_requires + [
